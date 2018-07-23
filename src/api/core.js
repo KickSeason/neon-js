@@ -52,6 +52,40 @@ export const sendAsset = config => {
 }
 
 /**
+ * Function to construct and execute a MultiAddress ContractTransaction.
+ * @param {object} config - Configuration object.
+ * @param {string} config.net - 'MainNet', 'TestNet' or a neon-wallet-db URL.
+ * @param {string} config.accounts - Wallet addresses
+//  * @param {string} [config.privateKey] - private key to sign with. Either this or signingFunction and public key is required.
+//  * @param {function} [config.signingFunction] - An external signing function to sign with. Either this or privateKey is required.
+//  * @param {string} [config.publicKey] - A public key for the singing function. Either this or privateKey is required.
+ * @param {TransactionOutput[]} config.intents - Intents.
+//* @param {bool} [config.sendingFromSmartContract] - Optionally specify that the source address is a smart contract that doesn't correspond to the private key.
+ * @return {Promise<object>} Configuration object.
+ */
+export const sendAssetFromAddrs = config => {
+  return fillUrl(config)
+    .then(fillBalance)
+    .then(c => createTx(c, 'contract'))
+    .then(c => addAttributesIfExecutingAsSmartContract(c))
+    .then(c => signTx(c))
+    .then(c => attachContractIfExecutingAsSmartContract(c))
+    .then(c => sendTx(c))
+    .catch(err => {
+      const dump = {
+        net: config.net,
+        address: config.address,
+        intents: config.intents,
+        balance: config.balance,
+        tx: config.tx,
+        fees: config.fees
+      }
+      log.error(`sendAsset failed with: ${err.message}. Dumping config`, dump)
+      throw err
+    })
+}
+
+/**
  * Perform a ClaimTransaction for all available GAS based on API
  * @param {object} config - Configuration object.
  * @param {string} config.net - 'MainNet', 'TestNet' or a neon-wallet-db URL.
