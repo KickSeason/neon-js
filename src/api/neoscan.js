@@ -67,7 +67,8 @@ export const getBalance = (net, address) => {
     res.data.balance.map(b => {
       bal.addAsset(b.asset, {
         balance: b.amount,
-        unspent: parseUnspent(b.unspent)
+        unspent: parseUnspent(b.unspent),
+        address: address,
       })
     })
     log.info(`Retrieved Balance for ${address} from neoscan ${net}`)

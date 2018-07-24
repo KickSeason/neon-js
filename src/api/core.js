@@ -5,6 +5,7 @@ import { Transaction, TransactionOutput, TxAttrUsage } from '../transactions'
 import { reverseHex, ab2hexstring } from '../utils'
 import { loadBalance } from './switch'
 import logger from '../logging'
+import Balance from '../wallet/Balance';
 
 const log = logger('api')
 
@@ -55,7 +56,8 @@ export const sendAsset = config => {
  * Function to construct and execute a MultiAddress ContractTransaction.
  * @param {object} config - Configuration object.
  * @param {string} config.net - 'MainNet', 'TestNet' or a neon-wallet-db URL.
- * @param {string} config.accounts - Wallet addresses
+ * @param {object} config.change - the account receives change
+ * @param {Array} config.accounts - Wallet addresses
 //  * @param {string} [config.privateKey] - private key to sign with. Either this or signingFunction and public key is required.
 //  * @param {function} [config.signingFunction] - An external signing function to sign with. Either this or privateKey is required.
 //  * @param {string} [config.publicKey] - A public key for the singing function. Either this or privateKey is required.
@@ -65,10 +67,12 @@ export const sendAsset = config => {
  */
 export const sendAssetFromAddrs = config => {
   return fillUrl(config)
-    .then(fillBalance)
+    .then(fillChange)
+    .then(fillBalances)
+    .then(mergeBalance)
     .then(c => createTx(c, 'contract'))
     .then(c => addAttributesIfExecutingAsSmartContract(c))
-    .then(c => signTx(c))
+    .then(c => signTxMultiAddrs(c))
     .then(c => attachContractIfExecutingAsSmartContract(c))
     .then(c => sendTx(c))
     .catch(err => {
@@ -184,6 +188,50 @@ export const fillBalance = config => {
 }
 
 /**
+ * Retrieves Balance if no balance has been attached
+ * @param {object} config
+ * @return {Promise<object>} Configuration object.
+ */
+export const fillBalances = config => {
+  if (config.balance) return Promise.resolve(config)
+  config.balances = []
+  let promises = config.accounts.map((a) => {
+    return loadBalance(getBalanceFrom, {address: a.address, net: config.net})
+  })
+  return Promise.all(promises).then(results => {
+    console.log('[fillbalances] result: ', results)
+    config.balances = config.balances.concat(results)
+    return config
+  })
+}
+const mergeAssetBalance = (b1, b2) => {
+  console.log('[mergeassetbalance] args: ', b1, b2)
+  let ab = {}
+  ab.balance = b1.balance.add(b2.balance)
+  ab.unspent = b1.unspent.concat(b2.unspent)
+  ab.spent = b1.spent.concat(b2.spent)
+  ab.unconfirmed = b1.unconfirmed.concat(b2.unconfirmed)
+  console.log('[mergeassetbalance] result: ', ab)
+  return ab
+}
+export const mergeBalance = config => {
+  console.log('[mergebalance] config: ', config)
+  if (config.balance) return Promise.resolve(config)
+  if (config.balances.length < config.accounts.length) return Promise.reject(new Error('didnt get all balances'))
+  config.balance = config.balances.reduce((balance, b) => {
+    let bb = b.balance
+    for (let i = 0; i < bb.assetSymbols.length; i++) {
+      let sym = bb.assetSymbols[i]
+      balance.assetSymbols.indexOf(sym) === -1 ? balance.assetSymbols.push(sym) : null
+      balance.assets[sym] ? balance.assets[sym] = mergeAssetBalance(balance.assets[sym], bb.assets[sym]) : balance.assets[sym] = bb.assets[sym]
+    }
+    return balance
+  }, new Balance({}))
+  config.balance.address = config.change.address
+  console.log('[mergebalance] merge balance: ' + JSON.stringify(config))
+  return Promise.resolve(config)
+}
+/**
  * Fills the relevant key fields if account has been attached.
  * @param {object} config
  * @return {Promise<object>} Configuration object.
@@ -197,6 +245,17 @@ export const fillKeys = config => {
   return Promise.resolve(config)
 }
 
+/**
+ * Fills the change address if not configured.
+ * @param {object} config
+ * @return {Promise<object>} Configuration object.
+ */
+export const fillChange = config => {
+  if (config.change) return Promise.resolve(config)
+  if (config.accounts.length < 1) throw (new Error('no from account'))
+  config.change = config.accounts[0]
+  return Promise.resolve(config)
+}
 /**
  * Retrieves Claims if no claims has been attached.
  * @param {object} config
@@ -279,6 +338,26 @@ export const signTx = config => {
   })
 }
 
+export const signTxMultiAddrs = config => {
+  checkProperty(config, 'tx')
+  let signedTx = config.accounts.reduce( (t, a) => {
+    if (a.privateKey) {
+      let acct = new Account(a.privateKey)
+      if (a.address !== acct.address && !a.sendingFromSmartContract) {
+        return Promise.reject(
+          new Error('Private Key and Balance address does not match!')
+        )
+      }
+      return t = t.sign(a.privateKey)
+    } else {
+      return Promise.reject(
+        new Error('Needs privateKey')
+      )
+    }
+  }, config.tx)
+  console.log('[signmultiaddrs] signedTx: ', signedTx)
+  return Promise.resolve(Object.assign(config, { tx: signedTx }))
+}
 /**
  * Sends a transaction off within the config object.
  * @param {object} config - Configuration object.
@@ -288,6 +367,7 @@ export const signTx = config => {
  */
 export const sendTx = config => {
   checkProperty(config, 'tx', 'url')
+  console.log('[sendTx] args: ', config.url, config.tx)
   return Query.sendRawTransaction(config.tx)
     .execute(config.url)
     .then(res => {
@@ -467,6 +547,7 @@ const checkProperty = (obj, ...props) => {
  */
 export const getBalanceFrom = (config, api) => {
   return new Promise((resolve) => {
+    console.log('[getbalancefrom] config:' + JSON.stringify(config))
     checkProperty(config, 'net', 'address')
     if (!api.getBalance || !api.getRPCEndpoint) { throw new Error('Invalid type. Is this an API object?') }
     resolve()
@@ -474,6 +555,7 @@ export const getBalanceFrom = (config, api) => {
     const { net, address } = config
     return api.getBalance(net, address)
   }).then(balance => {
+    console.log('[getbalancefrom] balance:', balance)
     return Object.assign(config, { balance })
   })
 }
