@@ -13,13 +13,14 @@ export default (assetBalanceObj = {}) => {
     balance,
     unspent,
     spent,
-    unconfirmed
+    unconfirmed,
+    address,
   } = assetBalanceObj
 
   return {
     balance: balance ? new Fixed8(balance) : new Fixed8(0),
-    unspent: unspent ? unspent.map(coin => Coin(coin)) : [],
-    spent: spent ? spent.map(coin => Coin(coin)) : [],
-    unconfirmed: unconfirmed ? unconfirmed.map(coin => Coin(coin)) : []
+    unspent: unspent ? unspent.map(coin => Coin(Object.assign(coin, {address}))) : [],
+    spent: spent ? spent.map(coin => Coin(Object.assign(coin, {address}))) : [],
+    unconfirmed: unconfirmed ? unconfirmed.map(coin => Coin(Object.assign(coin, {address}))) : [],
   }
 }

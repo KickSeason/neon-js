@@ -48,6 +48,9 @@ class Transaction {
     Object.keys(exclusive).map((k) => {
       this[k] = exclusive[k]
     })
+
+    /** @type {string[]} */
+    this.selectedAddrs = []
   }
 
   get [Symbol.toStringTag] () {
@@ -196,6 +199,13 @@ class Transaction {
     return this.addAttribute(TxAttrUsage.Remark, hexRemark)
   }
 
+  getSelectedAddrs (selectedInputs) {
+    this.selectedAddrs = []
+    for (let i = 0; i < selectedInputs.length; i++) {
+      this.selectedAddrs.indexOf(selectedInputs[i].address) === -1 ?
+        this.selectedAddrs.push(selectedInputs[i].address) : null
+    }
+  }
   /**
    * Calculate the inputs required based on existing outputs provided. Also takes into account the fees required through the gas property.
    * @param {Balance} balance - Balance to retrieve inputs from.
@@ -204,8 +214,9 @@ class Transaction {
    * @return {Transaction} this
    */
   calculate (balance, strategy = null, fees = 0) {
-    const { inputs, change } = core.calculateInputs(balance, this.outputs, this.gas, strategy, fees)
+    const { inputs, change, selectedInputs } = core.calculateInputs(balance, this.outputs, this.gas, strategy, fees)
     this.inputs = inputs
+    this.getSelectedAddrs(selectedInputs)
     this.outputs = this.outputs.concat(change)
     balance.applyTx(this)
     log.info(`Calculated the inputs required for Transaction with Balance: ${balance.address}`)

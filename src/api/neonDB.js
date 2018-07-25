@@ -33,7 +33,7 @@ export const getBalance = (net, address) => {
     const bal = new Balance({ net, address: res.data.address })
     Object.keys(res.data).map(key => {
       if (key === 'net' || key === 'address') return
-      bal.addAsset(key, res.data[key])
+      bal.addAsset(key, Object.assign(res.data[key], {address}))
     })
     log.info(`Retrieved Balance for ${address} from neonDB ${net}`)
     return bal

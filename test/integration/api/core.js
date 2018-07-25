@@ -65,6 +65,30 @@ describe('Integration: API Core', function () {
     })
   })
 
+  describe('sendAssetFromAddrs', function () {
+    it.skip('NeonDB', () => {
+      useNeonDB()
+
+      const intent2 = core.makeIntent({ NEO: 1 }, testKeys.b.address)
+      const config2 = {
+        net: NEO_NETWORK.TEST,
+        accounts: [
+          {
+            address: testKeys.a.address,
+            privateKey: testKeys.a.privateKey,
+          }
+        ],
+        intents: intent2,
+        fees: 0.00000001
+      }
+      return core.sendAssetFromAddrs(config2)
+        .then((c) => {
+          c.response.result.should.equal(true)
+          log.info(`sendAssetFromAddrs(neoscan): ${c.response.txid}`)
+        })
+    })
+  })
+
   describe('claimGas', function () {
     it.skip('neonDB', () => {
       useNeonDB()

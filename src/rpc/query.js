@@ -65,6 +65,7 @@ class Query {
       .then((res) => {
         this.res = res
         this.completed = true
+        console.log('[query][execute] res: ', res)
         if (res.error) {
           throw new Error(res.error.message)
         }

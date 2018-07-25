@@ -39,15 +39,16 @@ export const calculateInputs = (balances, intents, extraCost = 0, strategy = nul
     if (balances.assetSymbols.indexOf(assetSymbol) === -1) throw new Error(`This balance does not contain any ${assetSymbol}!`)
     const assetBalance = balances.assets[assetSymbol]
     if (assetBalance.balance.lt(requiredAmt)) throw new Error(`Insufficient ${ASSETS[assetId]}! Need ${requiredAmt.toString()} but only found ${assetBalance.balance.toString()}`)
-    return calculateInputsForAsset(AssetBalance(assetBalance), requiredAmt, assetId, balances.address, strategy)
+    return calculateInputsForAsset(assetBalance, requiredAmt, assetId, balances.address, strategy)
   })
 
   const output = inputsAndChange.reduce((prev, curr) => {
     return {
       inputs: prev.inputs.concat(curr.inputs),
-      change: prev.change.concat(curr.change)
+      change: prev.change.concat(curr.change),
+      selectedInputs: prev.selectedInputs.concat(curr.selectedInputs),
     }
-  }, { inputs: [], change: [] })
+  }, { inputs: [], change: [], selectedInputs: []})
   return output
 }
 
@@ -67,7 +68,7 @@ const calculateInputsForAsset = (assetBalance, requiredAmt, assetId, address, st
   const inputs = selectedInputs.map((input) => {
     return { prevHash: input.txid, prevIndex: input.index }
   })
-  return { inputs, change }
+  return { inputs, change, selectedInputs }
 }
 
 /**

@@ -10,6 +10,7 @@ export default (coinObj = {}) => {
   return {
     index: coinObj.index || 0,
     txid: coinObj.txid || '',
-    value: coinObj.value ? new Fixed8(coinObj.value) : new Fixed8(0)
+    value: coinObj.value ? new Fixed8(coinObj.value) : new Fixed8(0),
+    address: coinObj.address || ''
   }
 }
