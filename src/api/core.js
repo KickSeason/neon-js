@@ -212,6 +212,7 @@ const mergeAssetBalance = (b1, b2) => {
   ab.unconfirmed = b1.unconfirmed.concat(b2.unconfirmed)
   return ab
 }
+
 export const mergeBalance = config => {
   if (config.balance) return Promise.resolve(config)
   if (config.balances.length < config.accounts.length) return Promise.reject(new Error('didnt get all balances'))
@@ -335,7 +336,6 @@ export const signTx = config => {
     return Object.assign(config, { tx: signedTx })
   })
 }
-
 /**
  * sign a transaction using a account
  * @param {object} tx - transaction.
@@ -581,6 +581,7 @@ const checkProperty = (obj, ...props) => {
  */
 export const getBalanceFrom = (config, api) => {
   return new Promise((resolve) => {
+    console.log('[getbalancefrom] config:' + JSON.stringify(config))
     checkProperty(config, 'net', 'address')
     if (!api.getBalance || !api.getRPCEndpoint) { throw new Error('Invalid type. Is this an API object?') }
     resolve()
@@ -588,6 +589,7 @@ export const getBalanceFrom = (config, api) => {
     const { net, address } = config
     return api.getBalance(net, address)
   }).then(balance => {
+    console.log('[getbalancefrom] balance:', balance)
     return Object.assign(config, { balance })
   })
 }

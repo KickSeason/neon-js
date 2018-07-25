@@ -36,6 +36,7 @@ export const calculateInputs = (balances, intents, extraCost = 0, strategy = nul
   const inputsAndChange = Object.keys(requiredAssets).map((assetId) => {
     const requiredAmt = requiredAssets[assetId]
     const assetSymbol = ASSETS[assetId]
+    console.log('[calculateinput] balances: ' + JSON.stringify(balances.assetSymbols))
     if (balances.assetSymbols.indexOf(assetSymbol) === -1) throw new Error(`This balance does not contain any ${assetSymbol}!`)
     const assetBalance = balances.assets[assetSymbol]
     if (assetBalance.balance.lt(requiredAmt)) throw new Error(`Insufficient ${ASSETS[assetId]}! Need ${requiredAmt.toString()} but only found ${assetBalance.balance.toString()}`)
