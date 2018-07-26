@@ -65,7 +65,7 @@ The typescript declaration files are included _(no need of any @types/...)_.
 - Maintainer is [Yak Jun Xiang](https://github.com/snowypowers)
 
 ## Changelog
-add a interface **sendAssetsFromAddrs** whick support send assets from multiaddress. you can use like this:
+add a interface **sendAssetsFromAddrs** which supports sending assets from multiaddresses. you can use like this:
 ```
 require('@babel/register')
 var Neon = require('./src/index.js')
